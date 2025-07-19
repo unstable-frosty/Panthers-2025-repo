@@ -16,7 +16,7 @@ The team consists of two people and a "coach" or as we like to call her at home 
 
 - Kareem Siblini  (Kareemsiblini@gmail.com)
 - Adam Siblini  (adamsiblini@gmail.com)
-- Ebtisam nassif (enassif@gmail.com)
+- coach Ebtisam nassif (enassif@gmail.com)
 
 # Experiences passed from different competitions
 
