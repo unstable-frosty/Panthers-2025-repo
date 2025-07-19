@@ -1,0 +1,608 @@
+folder "prjs""Clever"
+import "Mods\Color"
+import "Mods\Gyro"
+import "Mods\Pixy2"
+import "Mods\AdvMtCtrls"
+' Global variables to share between thread and main loop
+distanceF = 0
+distanceL = 0
+distanceR = 0
+correctedL = 0
+correctedR = 0
+currentAngle = 0
+
+' Set sensor mode for SMUX ports
+Function setSensorMode(in number ev3Port, in number smuxPort, in number mode)
+  address = 80 + (smuxPort - 1)
+  Sensor.WriteI2CRegister(ev3Port, address, 82, mode)
+EndFunction
+
+' Read sensor value from MUX and filter out bad readings
+Function getSensorValue(in number ev3Port, in number smuxPort, out number value)
+  address = 80 + (smuxPort - 1)
+  data = Sensor.ReadI2CRegisters(ev3Port, address, 84, 2)
+  rawValue = data[1]*256 + data[0]
+  value = rawValue
+  
+EndFunction
+
+' Gyro and ultrasonic sensor initialization
+Sensor.SetMode(3, 0) ' Gyro to angle mode
+'setSensorMode(2, 1, 0) ' SMUX port 1 (Left)
+'setSensorMode(2, 2, 0) ' SMUX port 2 (Front)
+'setSensorMode(2, 3, 0) ' SMUX port 3 (Right)
+
+' One thread that updates all distance sensor values in order
+
+' Apply correction based on gyro angle
+Function corrected_distance(in number measured, in number angle,in number target, out number corrected)
+  radians = (angle-target) * (3.14159 / 180)
+  cosTheta = Math.Cos(radians)
+  horizontal = measured * cosTheta
+  error_fit = 0.00856 * angle * angle - 0.0967 * angle + 0.345
+  corrected = horizontal - error_fit
+EndFunction
+Function move_steering(in number center, in number targetOffset)
+  currentPos = Motor.GetCount("B")
+  targetAngle = center + targetOffset
+  moveAmount = targetAngle - currentPos
+  distance = Math.Abs(moveAmount)
+  
+  If moveAmount >= 0 Then
+    power = 50
+  Else
+    power = -50
+  EndIf
+  
+  Motor.Move("B", power, distance, "False")
+EndFunction
+
+' --- FUNCTION: CALIBRATE STEERING AND GET CENTER POSITION ---
+' --- FUNCTION: CALIBRATE STEERING AND GET CENTER POSITION ---
+Function center_steer(out number centerPos)
+  Motor.ResetCount("B")
+  Speaker.Tone(100, 1000, 100)
+  LCD.Clear()
+  
+  totalLeft = 0
+  totalRight = 0
+  
+  For i = 1 To 2
+    LCD.Text(1, 0, 0, 2, "Sweep " + i + ": Left")
+    
+    ' Move left until stall
+    Motor.StartPower("B", -50)
+    lastPos = Motor.GetCount("B")
+    stallCounter = 0
+    While stallCounter < 5
+      Program.Delay(100)
+      newPos = Motor.GetCount("B")
+      If Math.Abs(newPos - lastPos) < 3 Then
+        stallCounter = stallCounter + 1
+      Else
+        stallCounter = 0
+      EndIf
+      lastPos = newPos
+    EndWhile
+    Motor.Stop("B", "True")
+    Program.Delay(100)
+    leftLimit = Motor.GetCount("B")
+    totalLeft = totalLeft + leftLimit
+    LCD.Text(1, 0, 20, 2, "Left: " + leftLimit)
+    Program.Delay(100)
+    
+    LCD.Text(1, 0, 40, 2, "Sweep " + i + ": Right")
+    
+    ' Move right until stall
+    Motor.StartPower("B", 50)
+    lastPos = Motor.GetCount("B")
+    stallCounter = 0
+    While stallCounter < 5
+      Program.Delay(100)
+      newPos = Motor.GetCount("B")
+      If Math.Abs(newPos - lastPos) < 3 Then
+        stallCounter = stallCounter + 1
+      Else
+        stallCounter = 0
+      EndIf
+      lastPos = newPos
+    EndWhile
+    Motor.Stop("B", "True")
+    Program.Delay(100)
+    rightLimit = Motor.GetCount("B")
+    totalRight = totalRight + rightLimit
+    LCD.Text(1, 0, 60, 2, "Right: " + rightLimit)
+    Program.Delay(100)
+  EndFor
+  
+  ' Average both sweeps
+  avgLeft = totalLeft / 2
+  avgRight = totalRight / 2
+  centerPos = ((avgLeft + avgRight) / 2)
+  
+  LCD.Clear()
+  LCD.Text(1, 0, 0, 2, "Avg L: " + avgLeft)
+  LCD.Text(1, 0, 20, 2, "Avg R: " + avgRight)
+  LCD.Text(1, 0, 40, 2, "Center: " + centerPos)
+  Speaker.Tone(100, 2000, 100)
+  Program.Delay(300)
+EndFunction
+
+' --- FUNCTION: RESET GYRO SENSOR ---
+Function reset_gyro()
+  Sensor.SetMode(3, 1)
+  Program.Delay(500)
+  Sensor.SetMode(3, 0)
+  Program.Delay(500)
+  'Gyro.reset(3)
+  
+EndFunction
+
+' --- FUNCTION: ONE STEP OF GYRO-BASED CONTROL ---
+Function update_gyro_control(in number target, in number kp, in number kd, in number alpha, in number centerPos, out number filteredError, out number gyroLastError, out number currentAngle)
+  
+  currentAngle = Sensor.ReadRawValue(3, 0)
+  rawError = target - currentAngle
+  
+  ' Apply low-pass filter
+  filteredError = alpha * filteredError + (1 - alpha) * rawError
+  error = filteredError
+  
+  ' PD calculation
+  proportional = error * kp
+  derivative = (error - gyroLastError) * kd
+  steeringPower = proportional + derivative
+  
+  ' Clamp steering
+  'If Math.Abs(currentAngle-target)< 10 And steeringPower>30 Then
+  'steeringPower = 30
+  'ElseIf Math.Abs(currentAngle-target)< 10 And steeringPower<-30 Then
+  'steeringPower = -30
+  'Else
+  If steeringPower > 55 Then
+    steeringPower = 55
+  ElseIf steeringPower < -55 Then
+    steeringPower = -55
+  EndIf
+  'EndIf
+  move_steering(centerPos, steeringPower)
+  
+  gyroLastError = error
+EndFunction
+'Function for correcting steering with gyro in reverse direction
+Function Rupdate_gyro_control(in number target, in number kp, in number kd, in number alpha, in number centerPos, out number filteredError, out number gyroLastError, out number currentAngle)
+  
+  currentAngle = Sensor.ReadRawValue(3, 0)
+  rawError = target - currentAngle
+  
+  ' Apply low-pass filter
+  filteredError = alpha * filteredError + (1 - alpha) * rawError
+  error = filteredError
+  
+  ' PD calculation
+  proportional = error * kp
+  derivative = (error - gyroLastError) * kd
+  steeringPower = proportional + derivative
+  
+  ' Clamp steering
+  'If Math.Abs(currentAngle-target)< 10 And steeringPower>30 Then
+  'steeringPower = 30
+  'ElseIf Math.Abs(currentAngle-target)< 10 And steeringPower<-30 Then
+  'steeringPower = -30
+  'Else
+  If steeringPower > 55 Then
+    steeringPower = 55
+  ElseIf steeringPower < -55 Then
+    steeringPower = -55
+  EndIf
+  'EndIf
+  move_steering(centerPos, (steeringPower)*-1)
+  
+  gyroLastError = error
+EndFunction
+'function for averaging between gyro and ultrasonic sensor
+Function update_gyro_dis(in number target, in number distanceTarget, in number kpGyro, in number kdGyro, in number alphaGyro, in number kpDist, in number kdDist, in number alphaDist, in number centerPos, in number distance,in number DIR, out number filteredGyroError, out number filteredDistError, out number lastCombinedError, out number currentAngle)
+  currentAngle = Sensor.ReadRawValue(3, 0)
+  rawGyroError = target - currentAngle
+  filteredGyroError = (alphaGyro * filteredGyroError + (1 - alphaGyro) * rawGyroError)*DIR
+  'distance = Math.Cos(Math.GetRadians(currentAngle * 1.3)) * distance
+  rawDistError = distanceTarget - distance
+  filteredDistError = alphaDist * filteredDistError + (1 - alphaDist) * rawDistError
+  
+  combinedError = (filteredGyroError + filteredDistError) / 2
+  
+  proportional = filteredGyroError * kpGyro + filteredDistError * kpDist
+  derivative = (combinedError - lastCombinedError) * ((kdGyro + kdDist) / 2)
+  steeringPower = (proportional + derivative)*DIR
+  
+  If steeringPower > 30 Then
+    steeringPower = 30
+  ElseIf steeringPower < -30 Then
+    steeringPower = -30
+  EndIf
+  
+  move_steering(centerPos, steeringPower)
+  'AdvMtCtrls.move_steering(0.5,20,centerPos,steeringPower)
+  lastCombinedError = combinedError
+EndFunction
+Function AVupdate_gyro_dis(in number target, in number kpGyro, in number kdGyro, in number alphaGyro, in number kpDist, in number kdDist, in number alphaDist, in number centerPos, in number distanceL,in number distanceR,in number DIR, out number filteredGyroError, out number filteredDistError, out number lastCombinedError, out number currentAngle)
+  currentAngle = Sensor.ReadRawValue(3, 0)
+  rawGyroError = target - currentAngle
+  filteredGyroError = (alphaGyro * filteredGyroError + (1 - alphaGyro) * rawGyroError)*DIR
+  'distance = Math.Cos(Math.GetRadians(currentAngle * 1.3)) * distance
+  If distanceL > 1500 Then
+    distanceL = 500
+  EndIf
+  If distanceR > 1500 Then
+    distanceR = 500
+  EndIf
+  rawDistError = distanceR - distanceL
+  filteredDistError = alphaDist * filteredDistError + (1 - alphaDist) * rawDistError
+  
+  combinedError = (filteredGyroError + filteredDistError) / 2
+  
+  proportional = filteredGyroError * kpGyro + filteredDistError * kpDist
+  derivative = (combinedError - lastCombinedError) * ((kdGyro + kdDist) / 2)
+  steeringPower = (proportional + derivative)*DIR
+  
+  If steeringPower > 30 Then
+    steeringPower = 30
+  ElseIf steeringPower < -30 Then
+    steeringPower = -30
+  EndIf
+  
+  move_steering(centerPos, steeringPower)
+  'AdvMtCtrls.move_steering(0.5,20,centerPos,steeringPower)
+  lastCombinedError = combinedError
+EndFunction
+'---FUNCTION FOR COLOR DETECTION---
+Function color_RGB(in number port,out string detectedColor)
+  Color.getRGBW(port, r, g, b, w)
+  
+  ' Color detection logic
+  If r>180 And g>180 And b>180 Then
+    detectedColor = "White"
+  ElseIf r > b And r>180 Then
+    detectedColor = "Orange"
+    Speaker.Tone(100, 100, 100)
+    'Program.Delay(100)
+  ElseIf b > r Then
+    detectedColor = "Blue"
+    'Else
+    'detectedColor = "Unknown"
+  EndIf
+  'Speaker.Tone(100, 500, 1)
+EndFunction
+'Function to get largest signiture
+Function sig_data(in number alpha,out number sig ,out number x, out number y, out number w, out number h,out number fx1,out number fy1, out number fw1, out number fh1, out number fx2, out number fy2, out number fw2, out number fh2)
+  Pixy2.getSignature(1,1,x1,y1,w1,h1)
+  Pixy2.getSignature(1,2,x2,y2,w2,h2)
+  fx1 = alpha * fx1 + (1 - alpha) * x1
+  fy1 = alpha * fy1 + (1 - alpha) * y1
+  fw1 = alpha * fw1 + (1 - alpha) * w1
+  fh1 = alpha * fh1 + (1 - alpha) * h1
+
+  fx2 = alpha * fx2 + (1 - alpha) * x2
+  fy2 = alpha * fy2 + (1 - alpha) * y2
+  fw2 = alpha * fw2 + (1 - alpha) * w2
+  fh2 = alpha * fh2 + (1 - alpha) * h2
+  area1 = fx1 * fy1
+  area2 = fx2 * fy2
+  If area1 > area2 Or fy1>fy2 Then'And fy1>fy2
+    sig = 1
+    x = fx1
+    y = fy1
+    w = fw1
+    h = fh1
+    
+  ElseIf area2 > area1  Or fy2>fy1 Then'And fy2>fy1
+    sig = 2
+    x = fx2
+    y = fy2
+    w = fw2
+    h = fh2
+  Else
+    sig = 0
+    x = 0
+    y = 0
+    w = 0
+    h = 0
+  EndIf
+EndFunction
+
+
+Function pd_pxy(in number kp,in number kd,in number y,in number x, in number DIR,in number centerPos, out number old_err) 
+
+  'desiredX = (0.0025 * y * y - 0.8 * y - 40)
+  desiredX = (0.0013 * y * y - 250 * y - 10000)
+  'desiredX = 0.5 * y - 50
+  'desiredX = 0.0025 * y - 0.8 * y - 55
+  err = (x - desiredX) '* DIR
+  corr = ((err) * kp + kd * (err - old_err)) *DIR
+ 'Speaker.Tone(100,2000,20)
+  If desiredX > 40 Then
+    desiredX = 40
+    Speaker.Tone(100,2000,20)
+  ElseIf desiredX < -40 Then
+    desiredX = -40
+    Speaker.Tone(100,100,20)
+  EndIf
+  move_steering(centerPos,corr)
+  Motor.StartPower("C",55)
+  old_err = err
+EndFunction
+'Sensor.SetMode(4,0)
+'Sensor.SetMode(2,0)
+'-----SUBS-----
+setSensorMode(4, 3, 0)
+setSensorMode(4, 2, 0)
+setSensorMode(4, 1, 0)
+Sub ReadAllUltrasonic
+  While 1=1
+    getSensorValue(4, 3, distanceL) ' Left
+    Program.Delay(20)
+    'getSensorValue(2, 2, distanceF) ' Front
+    getSensorValue(4, 2, distanceR) ' Right
+    Program.Delay(20)
+    getSensorValue(4, 1, distanceF)
+    Program.Delay(20)
+     ' Let other threads run (optional but good)
+    'distanceL = Sensor.ReadRawValue(4,0)
+    'distanceR = Sensor.ReadRawValue(2,0)
+    If distanceL>2550 Then
+      distanceL = 2550
+    EndIf
+    If distanceR > 2550 Then
+      distanceR = 2550
+    EndIf
+    If distanceF > 2550 Then
+      distanceF = 2550
+    EndIf
+    If  distanceL<1 Then 'distanceL > 2000 Or
+      'Speaker.Tone(100,4000,10)
+      distanceL = 500
+    EndIf
+    If  distanceR<1 Then 'distanceR >2000 Or
+      'Speaker.Tone(100,500,10)
+      distanceR = 500
+    EndIf
+    If distanceF<1 Then
+      'Speaker.Tone(100,2000,10)
+      distanceR = 500
+    EndIf
+    'Thread.Yield()
+  EndWhile
+  
+EndSub
+
+Sub CLR
+  While 1=1
+    color_RGB(2,detect)
+    Program.Delay(20)
+  EndWhile
+EndSub
+Sub pxy
+  While 1=1
+    sig_data(0.7,sig,x,y,w,h,fx1,fy1,fw1,fh1,fx2,fy2,fw2,fh2)
+    'LCD.Text(1,0,0,2,"sig: " + sig)
+    'LCD.Text(1,0,20,2,"x: " + x)
+    'LCD.Text(1,0,40,2,"y: " + y)
+    'LCD.Text(1,0,60,2,"w: " + w)
+    'LCD.Text(1,0,80,2,"h: " + h)
+    'Thread.Yield()
+  EndWhile
+EndSub
+' --- MAIN PROGRAM ---
+reset_gyro()
+center_steer(centerPos)
+move_steering(centerPos, 0)
+Program.Delay(300)
+
+'actual_pos = Motor.GetCount("B")
+'LCD.Clear()
+'LCD.Text(1, 0, 0, 2, "act: " + actual_pos)
+'Speaker.Tone(100, 4000, 100)
+'Program.Delay(400)
+
+
+Ang = Sensor.ReadRawValue(3, 0)
+LCD.Text(1, 0, 0, 2, "Angle: " + Ang)
+'Program.Delay(400)
+' --- Init Control Variables ---
+target = 0
+target_dist = 500
+
+kpGyro = 1.5
+kdGyro = 6
+kpDist = 0.6
+kdDist = 8.5
+
+
+gyroLastError = 0
+filteredError = 0
+
+alphaGyro = 0.7
+alphaDist = 0.7
+
+color_port = 2
+cw = 0                   ' -1 = not set, 1 = CW, 0 = CCW
+colorReady = 1            ' 1 = ready to detect, 0 = wait
+first_color= 0
+count = 0
+set_dis = 0
+using_gyro = 0
+sig_flag = 0
+' Start moving forward
+
+' Start the sensor thread
+Thread.Run = ReadAllUltrasonic
+
+Thread.Run = CLR
+Program.Delay(100)
+LCD.Clear()
+Pixy2.setLampOff(1)
+Pixy2.setLampOn(1)
+'Pixy2.setLampOff(1)
+Thread.Run = pxy
+Program.Delay(1000)
+Motor.StartPower("C", 55)
+While 1=1 
+  centerX = 160
+  centerY = 100
+  'distanceL = Sensor.ReadRawValue(4,0)
+  'color_RGB(2,detect)
+  x_centered = x - centerX
+  y_centered = y - centerY
+  If sig_flag > 0 Then
+    sig_flag = sig_flag - 1
+    
+  EndIf
+  If sig = 1 And x*y>30  And y> 65 Then'And y >100 And x*y>15 
+    'If @distanceL < 150 Then
+      'move_steering(centerPos,55)
+    'EndIf
+    pd_pxy(0.0013,0.0015,y_centered,x_centered,-1,centerPos,old_err) 
+    'pd_pxy(0.2,0.01,y_centered,x_centered,-1,centerPos,old_err) 
+
+  ElseIf sig = 2 And x*y>30 And y>65 Then 'and y >100 And x*y>15 And h>w
+    'If @distanceR < 150 Then
+      'move_steering(centerPos,-55)
+    'EndIf
+    pd_pxy(0.0013,0.0012,y_centered,x_centered,1,centerPos,old_err)
+    'pd_pxy(0.2,0.01,y_centered,x_centered,1,centerPos,old_err) 
+    sig_flag = 20
+    'target_dist = 200
+  ElseIf @distanceL<1500 And @distanceR<1500 And @distanceL>60 And @distanceR>60 And sig_flag < 1 Then 'currentAngle> target-20 And currentAngle< target +35 And 
+
+    
+      'update_gyro_dis(target, target_dist, kpGyro, kdGyro, alphaGyro, kpDist, kdDist, alphaDist, centerPos,@distanceL,1, filteredGyroError, filteredDistError, lastCombinedError, currentAngle)
+    AVupdate_gyro_dis(target, kpGyro, kdGyro, alphaGyro, kpDist, kdDist, alphaDist, centerPos,@distanceL,@distanceR,1, filteredGyroError, filteredDistError, lastCombinedError, currentAngle)
+    target_dist = 500
+    Motor.StartPower("C",55)
+  Else
+    
+    update_gyro_control(target, 1.5, 5.5, alphaGyro, centerPos, filteredError, gyroLastError, currentAngle)
+    Motor.StartPower("C",55)
+  EndIf
+  If detect = "Orange" Then
+    'getSensorValue(4, 1, distanceF)
+    'MotorC.ResetCount()
+    Speaker.Tone(100,100,100)
+    move_steering(centerPos,0)
+
+    target = target + 91
+    Motor.ResetCount("C")
+    While Math.Abs(Motor.GetCount("C"))<100
+    EndWhile
+  EndIf
+    
+
+  
+EndWhile
+'Motor.StartPower("C", 97)
+' Clear display before showing data
+LCD.Clear()
+
+' Main loop
+While count<>12
+  'Ang = Sensor.ReadRawValue(3, 0)
+  If cw = 0 Then
+    update_gyro_control(target, 1.2, 5.5, alphaGyro, centerPos, filteredError, gyroLastError, currentAngle)
+    'Motor.StartPower("C", -50)
+    using_gyro = 1
+  Else
+    'Motor.StartPower("C", -70)
+    If first_color = 1 And currentAngle> target-20 Then 'first_color = 1 And Math.Abs(currentAngle - target)<21 Or 
+      distanceL = Sensor.ReadRawValue(4,0)
+      'LCD.Text(1, 0, 80, 2, "L: " + distanceL)
+      update_gyro_dis(target, target_dist, kpGyro, kdGyro, alphaGyro, kpDist, kdDist, alphaDist, centerPos,distanceL,1, filteredGyroError, filteredDistError, lastCombinedError, currentAngle)
+      using_gyro = 0
+      'Program.Delay(50)
+      'LCD.Clear()
+    ElseIf first_color = -1 And currentAngle< target + 20 Then 'first_color = -1 And Math.Abs(target- currentAngle)<21 first_color = -1 And currentAngle> target + 20
+      'LCD.Text(1, 0, 100, 2, "R: " + distanceR)
+      distanceR = Sensor.ReadRawValue(2,0)
+      update_gyro_dis(target, target_dist, kpGyro, kdGyro, alphaGyro, kpDist, kdDist, alphaDist, centerPos,distanceR,-1, filteredGyroError, filteredDistError, lastCombinedError, currentAngle)
+      'Program.Delay(50)
+      'LCD.Clear()
+      using_gyro = 0
+    Else
+      update_gyro_control(target, 1.2, 6, alphaGyro, centerPos, filteredError, gyroLastError, currentAngle)
+      using_gyro = 1
+      
+    EndIf
+  EndIf
+  
+  color_RGB(color_port, detect)
+  
+  If detect = "Orange" And cw = 0 Then
+    cw = 1
+    first_color = 1
+  ElseIf detect = "Blue" And cw = 0 Then
+    cw = -1
+    first_color = -1
+  EndIf
+  If cw = 1 And detect = "Orange"   Then'Or cw = 1 And distanceF<650 And using_gyro = 0 And Math.Abs(Ang - target)<10 And distanceF>300
+    move_steering(centerPos,0)
+    Speaker.Tone(100, 2000, 100)
+    'Program.Delay(250)
+    Motor.ResetCount("C")
+    While Math.Abs(Motor.GetCount("C"))<200
+    EndWhile
+    target = target + 90
+    count = count+1
+  ElseIf cw = -1 And detect = "Blue"  Then 'Or cw = -1 And distanceF<650 And using_gyro = 0 And Math.Abs(Ang - target)<10 And distanceF>300
+    move_steering(centerPos,0)
+    Speaker.Tone(100, 4000, 100)
+    'Program.Delay(250)
+    Motor.ResetCount("C")
+    While Math.Abs(Motor.GetCount("C"))<200
+    EndWhile
+    target = target -90
+    count = count+1
+    
+  EndIf
+  'if set_dis = 0 and cw<>0 Then
+  'set_dis = distanceF
+  'EndIf
+  'If Math.Abs(Ang - target)>20 Then
+  'update_gyro_control(target, 1.2, 6, alphaGyro, centerPos, filteredError, gyroLastError, currentAngle)
+  'Motor.Stop("C", "True")
+  'Else
+  'Speaker.Tone(100, 500, 10)
+  'EndIf
+  
+  'LCD.Clear()
+  'LCD.Text(1, 0, 0, 3, "Angle: " + currentAngle)
+  'LCD.Text(1, 0, 20, 3, "Target: " + target)
+  'LCD.Text(1, 0, 40, 3, "Color: " + detect)
+  'currentAngle = Sensor.ReadRawValue(3, 0)
+  
+  ' Correct left and right sensor readings using gyro angle
+  'corrected_distance(distanceL, currentAngle, target, correctedL)
+  'corrected_distance(distanceR, currentAngle,target, correctedR)
+  
+  ' Display values on screen
+  'LCD.Text(1, 0, 60, 2, "set: " + set_dis)
+  
+  'LCD.Text(1, 0, 100, 2, "F: " + distanceF)
+  'LCD.Text(1, 0, 60, 3, "threash: " + distanceF)
+  
+EndWhile
+Motor.StartPower("C", 97)
+Motor.ResetCount("C")
+Time.Reset2()
+While Math.abs(Motor.GetCount("C"))<1000
+  update_gyro_control(target, 1.2, 7, alphaGyro, centerPos, filteredError, gyroLastError, currentAngle)
+  using_gyro = 1
+EndWhile
+While Math.abs(Motor.GetCount("C"))<3900 Or Time.Get2()< 4
+  If first_color = 1 Then
+    distanceL = Sensor.ReadRawValue(4,0)
+    'LCD.Text(1, 0, 80, 2, "L: " + distanceL)
+    update_gyro_dis(target, target_dist, kpGyro, kdGyro, alphaGyro, kpDist, kdDist, alphaDist, centerPos,distanceL,1, filteredGyroError, filteredDistError, lastCombinedError, currentAngle)
+  Else
+    distanceR = Sensor.ReadRawValue(2,0)
+    update_gyro_dis(target, target_dist, kpGyro, kdGyro, alphaGyro, kpDist, kdDist, alphaDist, centerPos,distanceR,-1, filteredGyroError, filteredDistError, lastCombinedError, currentAngle)
+  EndIf
+EndWhile
