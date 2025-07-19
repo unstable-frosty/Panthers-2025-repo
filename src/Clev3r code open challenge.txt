@@ -184,7 +184,7 @@ Function Rupdate_gyro_control(in number target, in number kp, in number kd, in n
   derivative = (error - gyroLastError) * kd
   steeringPower = proportional + derivative
   
-  ' Clamp steering
+
   'If Math.Abs(currentAngle-target)< 10 And steeringPower>30 Then
   'steeringPower = 30
   'ElseIf Math.Abs(currentAngle-target)< 10 And steeringPower<-30 Then
