@@ -14,9 +14,9 @@ Welcome to our GitHub repository. In this repo, we will be documenting our journ
 # Team members
 The team consists of two people and a "coach" or as we like to call her at home ✨mum✨.
 
-Kareem Siblini  (Kareemsiblini@gmail.com)
-Adam Siblini  (adamsiblini@gmail.com)
-Ebtisam nassif (enassif@gmail.com)
+- Kareem Siblini  (Kareemsiblini@gmail.com)
+- Adam Siblini  (adamsiblini@gmail.com)
+- Ebtisam nassif (enassif@gmail.com)
 
 # Experiences passed from different competitions
 
