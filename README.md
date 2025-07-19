@@ -2,7 +2,7 @@
 
 - [Introduction](#Introduction)
 - [Hardware documentation](#hardware-documentation)
-- [Coding documentation]((https://github.com/unstable-frosty/Panthers-2025-repo/tree/8454e8c2bf0ceed4cd277130ab7a8011b173d936/src))
+<a href="https://github.com/unstable-frosty/Panthers-2025-repo/tree/8454e8c2bf0ceed4cd277130ab7a8011b173d936/src">Coding Documentation</a>
 - [teamwork and ethic](#teamwork-and-ethic) 
 
 ---
