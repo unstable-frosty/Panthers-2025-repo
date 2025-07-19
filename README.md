@@ -1,1 +1,1 @@
-# Panthers-2025-repo
+# Navigation Index
