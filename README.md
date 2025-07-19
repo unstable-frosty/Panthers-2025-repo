@@ -1,23 +1,23 @@
 ## Table of contents
 
-- [Our journe](#our-journey)
-- [Ideas and principles](#ideas-and-principles)
+- [Introduction](#Introduction)
+- [Work ethic and teamwork](#work-ethic-and-teamwork)
 - [Hardware documentation](#hardware-documentation)
-- [Software documentation](#software-documentation)
+- [Coding documentation](#software-documentation)
 - [Measureunt - The robot's mechanical characteristics](#measureunt---the-robots-mechanical-characteristics)
 
 ---
 
-# Our journey
+# Introduction
 Text about your journey...
 
-# Ideas and principles
+# Work ethic and teamwork
 Your ideas...
 
 # Hardware documentation
 Hardware stuff...
 
-# Software documentation
+# COding documentation
 Code and explanation...
 
 # Measureunt - The robot's mechanical characteristics
