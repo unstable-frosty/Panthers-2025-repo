@@ -1,2 +1,3 @@
 # Coding documentation
-### starting with open challenge logic
+### Starting with open challenge logic
+##### Sensor setup and its role
