@@ -15,9 +15,9 @@ Welcome to our GitHub repository. In this repo, we would be documenting our jour
 # Team members
 The team consists of two people and a "coach" or as we like to call her at home ✨mum✨.
 
-<p>Kareem Siblini  (Kareemsiblini@gmail.com)
+Kareem Siblini  (Kareemsiblini@gmail.com)
 Adam Siblini  (adamsiblini@gmail.com)
-Ebtisam nassif (enassif@gmail.com)</p>
+Ebtisam nassif (enassif@gmail.com)
 
 # experiences passed from different competitions
 
@@ -25,7 +25,9 @@ We are completely self taught developers and this is our first year competing in
 
 # Designing our first robot prototype
 
+for our first design we decided to take things slow and figure out a better and more efficient design, we initially used ackerman steering and a differential with the medium motors stacked on top of each other horizontally and we geared down the steering mechanism using bevel gears. we also used spike wheels for the drive base and the steering. all of this came with a disadvantage firstly the car was way too big and the steering angle was bad due to the size of the wheels.
 
+![image alt](https://github.com/unstable-frosty/Panthers-2025-repo/blob/cc2bc7a8f7964c5d921e8d20fd3a8d1da6067953/v-photos/Old%20prototype/proto%20v1%20side.JPG)
 
 
 # Hardware documentation
