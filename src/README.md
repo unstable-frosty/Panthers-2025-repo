@@ -1,5 +1,69 @@
 # Coding documentation
 ### Starting with open challenge logic
+
+- ### steering recentering "calibration"
+As soon as the robot starts, it goes into a steering recentering mode where it makes sure the steering angle is 0 in the start to ensure reliable control in the run. The robot turns the fully to the left and then fully to the right and records the max angle position in both directions and calculates the middle point. This center position is saved and used in the code as a reference for all steering corrections throughout the run. Without this step, the robot may drift due to misalignment. Doing this in the start ensures symmetry in steering.
+
+- ### Straight movement using the Gyro (AKA EV3 accelerometer)
+Once the center point is determined, the robot begins moving forward using only the gyro control. it keeps comparing the current heading angle from gyro to a target angle which is set to 0 from the start.
+A PD algorithm (proportional-derivative) is used to calculate and readjust the steering. All sensor reading (ultrasonic, gyro) in exception to the colour censor are passed through a low-pass filter to reduce abrupt fluctuations to smoothen the car movement. 
+
+error = target - currentAngle
+filteredError = α × previousFiltered + (1 - α) × error
+steeringPower = (Kp × filteredError) + (Kd × change in error)
+
+The robot is then locked in to a safe range to prevent the robot from oversteering (between -55 and 55). This is activated as soon as the robot starts beofre any detections to ensure a straight path.
+
+- ### Color detection for turning
+As the robot moves forward, it keep scanning the ground using its color sensor. when it detects orange the robot moves in a clockwise direction and blue chooses a counterclockwise direction. this detection is set in a variable called first_color, which is used to determine which side's ultrasonic sensor to follow when collrecting based on the distance. 
+
+- ### Turn Execution
+Each time the robot detects the same color during the run it interprets this as a cue to turn +-91 degrees depending on the color detected
+target = target ± 91°
+
+This change in the target angle makes the correction in the cotnrol loop making the robot turn in a curve accordingly.
+
+(we chose 91 not 90 because we have a gear backlash from the steering so we accounted for it in the code)
+The algorithm goes on loop until 12 color detection are made indicating the 3 laps have finished.
+
+- ### Hybrid steering system using Gyro + Distance sensor Fusion
+After the first color is detected, the robot upgrades the control by switching into a hybrid mode which combines data like the angular error from the gyro sensor; The wall distance error from the left or right ultrsonic, depending on direction of turning.
+Both of the readings are filtered seperately using low-pass filtering and then it is combined to calculate the final steering output.
+
+gyroError = target - currentAngle
+filteredGyro = α × previousGyro + (1 - α) × gyroError
+
+distanceError = desiredWallDistance - measuredDistance
+filteredDist = α × previousDist + (1 - α) × distanceError
+
+combinedError = (filteredGyro + filteredDist) / 2
+
+steeringPower = (Kp1 × filteredGyro + Kp2 × filteredDist) + Kd × ΔcombinedError
+
+The steering value is limited again to avoid oversteering and wheel drifting.
+
+- ### Final lap and stopping
+Once the robot detects 12 times it transitions to the final stage. it drives forward with predefined distances using the encoder while still using the hybrid steering logic. This is to ensure that any accumelated gyro drift values (if any) is avoided and ensures a straight path.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #### Sensor setup and its role:
 The robot heavily relies on the gyro sensor to maintain its direction throughout the section navigation. The gyro is first initialized in angle mode and then reseted at the beginning to ensure consistent non incremented readings. it is then continuously read during the car's movement to determine the direction and orientation relative to the "target" angle. The angle gets updated whenever the robot turns. The steering correction is then applied based on the difference between the current angle and the target angle using what is called a "PD algorithm" AKA Proportional-Derivative controller.
 
