@@ -15,12 +15,18 @@ Welcome to our GitHub repository. In this repo, we would be documenting our jour
 # Team members
 The team consists of two people and a "coach" or as we like to call her at home ✨mum✨.
 
-Kareem Siblini  (Kareemsiblini@gmail.com)
+<p>Kareem Siblini  (Kareemsiblini@gmail.com)
 Adam Siblini  (adamsiblini@gmail.com)
-Ebtisam nassif (enassif@gmail.com)
+Ebtisam nassif (enassif@gmail.com)</p>
 
-# Work ethic and teamwork
-Your ideas...
+# experiences passed from different competitions
+
+We are completely self taught developers and this is our first year competing in the future engineering category and our second year competing in the WRO. we have competed in the robomission category, this allowed our minds to prosper with creative designs which highly assist in the mechanical aspect of our robot. not only did we gain an eye for design but competing in line following competitions and breaking a 16 year record in one of them using our lego ev3 and maxing out its using a complex mathematical PD equation. however, still with all these skills, there were still many challenges to be waiting on us, from camera positioning to calibration and quadratic curve equations we have never used before.
+
+# Designing our first robot prototype
+
+
+
 
 # Hardware documentation
 Hardware stuff...
