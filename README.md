@@ -4,7 +4,7 @@
 - [Work ethic and teamwork](#work-ethic-and-teamwork)
 - [Hardware documentation](#hardware-documentation)
 - [Coding documentation](#software-documentation)
-
+- [teamwork and ethic](#teamwork-and-ethic) 
 
 ---
 
