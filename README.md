@@ -3,7 +3,9 @@
 - [Introduction](#Introduction)
 - [Hardware documentation](#hardware-documentation)
 - <a href="https://github.com/unstable-frosty/Panthers-2025-repo/tree/8454e8c2bf0ceed4cd277130ab7a8011b173d936/src">Coding Documentation</a>
-- [teamwork and ethic](#teamwork-and-ethic) 
+- [teamwork and ethic](#teamwork-and-ethic)
+- <a href="https://github.com/unstable-frosty/Panthers-2025-repo/tree/40ba7738889271ed1260eba725b644c19f0dac44/v-photos">Car photos</a>
+- <a href="https://github.com/unstable-frosty/Panthers-2025-repo/tree/40ba7738889271ed1260eba725b644c19f0dac44/t-photos">Team photos</a>
 
 ---
 
