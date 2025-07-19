@@ -1,2 +1,2 @@
-## Coding documentation
-# starting with open challenge logic
+# Coding documentation
+## starting with open challenge logic
