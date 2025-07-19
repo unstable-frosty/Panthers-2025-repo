@@ -1,6 +1,6 @@
 ## Table of contents
 
-- [Our journey](#our-journey)
+- [Our journe](#our-journey)
 - [Ideas and principles](#ideas-and-principles)
 - [Hardware documentation](#hardware-documentation)
 - [Software documentation](#software-documentation)
