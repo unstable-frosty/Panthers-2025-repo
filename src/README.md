@@ -92,4 +92,8 @@ The colour sensor detects the orange and blue lines. Orange triggeres the right 
 
 Once the last turn is counted, the robot aligns with the left or right wall using the left or right ultrasonic sensor depending on the driving direction, backs up and the robot then alights it self with the wall perpendicular to the one infront of it. then it keeps avoiding the obstacles until the robot reaches a certain distance measured by encoders.
 
+## Issues faced
+
+due to the limitted type of motors we can use on ev3 we had to use a dc motor with encoder instead of a servo, the difference between the 2 is the servo motor measures it angle using an internal potentiometer meaning that the servo always knows its position even after turning te servo on and off.However a dc motor with encoder does not know its initial position so we had to run a steer-centering program.Another issue with the our robot is our multiplexer, due it it not being official lego component intigrating it was not the easiest task, somtimes the ultrasonic sensors attached to the multiplexer randomly turn off which causes the robot to have false readings which we attempted to filter out. Additionally we had to place a delay between switching wit the different chanels so the data does not get corrupted.
+
 
