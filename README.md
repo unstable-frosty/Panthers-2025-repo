@@ -26,7 +26,7 @@ We are completely self taught developers and this is our first year competing in
 
 # Designing our first robot prototype
 
-For our first design we decided to take things slow and figure out a better and more efficient design. We initially used ackerman steering and a differential with the medium motors stacked on top of each other horizontally and we geared down the steering mechanism using bevel gears. We also used spike wheels for the drive base and the steering. All of this came with a disadvantage; the car was way too big and the steering angle was bad due to the size of the wheels.
+For our first design we decided to take things slow and figure out a better and more efficient design. We initially used ackerman steering and a differential with the medium motors stacked on top of each other horizontally and we geared down the steering mechanism using bevel gears. We also used spike wheels for the drive base and the steering. All of this came with a disadvantage; the car was way too big and the steering angle was worse due to that issue. In addition, due to the large size of the front wheels we couldnt place the ultrasonic in the front and we had to put them between the front and rear wheels. This caused the robot to oscillate alot in the open challenge because the sensors where not getting true distance fromt walls. in our second design we fixed this issue by making the front wheels small and placing the ultrasonic above them which gave the robot enough time to react to distance changes, or what i like to call it more look ahead.
 
 ![image alt](https://github.com/unstable-frosty/Panthers-2025-repo/blob/cc2bc7a8f7964c5d921e8d20fd3a8d1da6067953/v-photos/Old%20prototype/proto%20v1%20side.JPG)
 
