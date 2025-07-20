@@ -5,7 +5,7 @@
 As soon as the robot starts, it goes into a steering recentering mode where it makes sure the steering angle is 0 in the start to ensure reliable control in the run. The robot turns fully to the left and then fully to the right twice and records the max angle position in both directions and calculates the middle point. This center position is saved and used in the code as a reference for all steering corrections throughout the run. Without this step, the robot may drift due to misalignment. Doing this in the start ensures symmetry in steering.
 
 - ### Straight movement using the Gyro 
-Once the center point is determined, the robot begins moving forward using only the gyro control. it keeps comparing the current heading angle from gyro to a target angle which is set to 0 from the start.
+Once the center point is determined, the robot begins moving forward using only the gyro control. It keeps comparing the current heading angle from gyro to a target angle which is set to 0 from the start.
 A PD algorithm (proportional-derivative) is used to calculate and readjust the steering. All sensor reading (ultrasonic, gyro) in exception to the colour sensor are passed through a low-pass filter to reduce abrupt fluctuations to smoothen the car movement. 
 
 error = target - currentAngle
@@ -74,7 +74,7 @@ The initialization process is exactly the same as the Open Challenge; The robot 
 
 
 #### Sensor setup and its role:
-The robot heavily relies on the gyro sensor to maintain its direction throughout the section navigation. The gyro is first initialized in angle mode and then reseted at the beginning to ensure consistent non incremented readings. it is then continuously read during the car's movement to determine the direction and orientation relative to the "target" angle. The angle gets updated whenever the robot turns. The steering correction is then applied based on the difference between the current angle and the target angle using what is called a "PD algorithm" AKA Proportional-Derivative controller.
+The robot heavily relies on the gyro sensor to maintain its direction throughout the section navigation. The gyro is first initialized in angle mode and then resets at the beginning to ensure consistent non incremented readings. it is then continuously read during the car's movement to determine the direction and orientation relative to the "target" angle. The angle gets updated whenever the robot turns. The steering correction is then applied based on the difference between the current angle and the target angle using what is called a "PD algorithm" AKA Proportional-Derivative controller.
 
 Two ultrasonic sensors are mounted on both sides of the car above the steering to measure the distance from both walls. these readings allow for the robot to realign itself in the center between both walls. A sensor fusion technique is also applied to achieve stable movement by combining the filtered error from both gyro and ultrasonics to create a good steering angle. The readings are filtered by using a low pass filter to smoothen sudden changes in values and improve stability control. we also have an ultrasonic infront of the robot incase the robot gets too close the the obstacle it backs up and re-adjusts
 
