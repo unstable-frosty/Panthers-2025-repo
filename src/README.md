@@ -50,7 +50,7 @@ Once the robot detects 12 times it transitions to the final stage. it drives for
 
 ### Initialization Process
 
-The initialization process is exactly the same as the Open Challenge; The robot begins by centering the steering system, going fully left and right and calculating the middle point. The gyro sensor resets to ensure that the car starts at angle 0. These are extremely critical steps in order to have an accurate PD control in throughout the round.
+The initialization process is exactly the same as the Open Challenge; The robot begins by centering the steering system, going fully left and right and calculating the middle point. The gyro sensor resets to ensure that the car starts at angle 0. These are extremely critical steps in order to have an accurate PD control in throughout the round. we also initialize 3 threads, 1 for color detection, another one which reads from the multiplexer by Reading 2 bytes of data from register 84, which is where the SMUX stores sensor readings. Combines the two bytes into a single 16-bit number. Returns this number as the sensor value, and a thread for the pixy cam to grab the closest signiture.(we also used low pass filtering to filter our noisy data for the size and coordinates of the signiture).
 
 ### 
 
