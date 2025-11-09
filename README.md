@@ -62,7 +62,7 @@ To sum this all up, we have put a great amount of work and dedication into this 
 
 ***
 
-## 📬 Contact Us(**Email**)
+## 📬 Contact Us (**Email**)
 
 <p align="center">
   <a href="mailto:Kareemsiblini@gmail.com"><strong>Kareem Siblini</strong></a> •
