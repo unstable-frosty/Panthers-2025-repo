@@ -1,7 +1,8 @@
 # Table of contents
 
 - [Introduction](#Introduction)
-- [Hardware documentation](#hardware-documentation)
+- <a href="https://github.com/unstable-frosty/Panthers-2025-repo/tree/main/models">3D Models</a>
+- <a href="https://github.com/unstable-frosty/Panthers-2025-repo/tree/main/schemes">Schematics</a>
 - <a href="https://github.com/unstable-frosty/Panthers-2025-repo/tree/main/src">Coding Documentation</a>
 - <a href="https://github.com/unstable-frosty/Panthers-2025-repo/blob/main/Development%20stages%20and%20work%20ethic.md">Development Stages and Work Ethic</a>
 - <a href="https://github.com/unstable-frosty/Panthers-2025-repo/blob/main/Final%20plan%20strategy.md">Final plan strategy</a>
