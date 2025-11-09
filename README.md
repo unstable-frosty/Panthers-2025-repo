@@ -25,22 +25,22 @@ Our team is made up of twin brothers **Kareem** and **Adam** with our mum, **Coa
 > ### Kareem Siblini  
 > **Age:** 16  
 > **Role:** Design • Documentation • System integration  
->
+> 
 > I’m mostly responsible for the robot’s design, documentation, and wiring, but my brother and I always jump in to help each other whenever we need it. I’m really passionate about coding and cybersecurity, and I love using that interest to push our robot further. When I’m not working on the robot, you’ll usually find me playing basketball. This is my first year competing internationally in the WRO and my first time in the Future Engineers category, and I’m super excited to be here!
 
 ---
 
 > ### Adam Siblini  
 > **Age:** 16  
-> **Role:** Coding • Algorithm & logic development  
->
+> **Role:** Coding • Algorithm & logic development
+> 
 > I’m mostly in charge of the coding and logic development for our robot, but just like Kareem helps me out, I also jump in to support his work whenever needed. I really enjoy math and love using it to build smarter algorithms for our robot. Outside of robotics, I enjoy swimming and staying active. This is my first year competing internationally in the WRO and my first time in the Future Engineers category, and I’m excited to take on the challenge!
 
 ---
 
 > ### Coach Ebtisam Nassif  
 > **Role:** Coach • Organization • Budget & components  
->
+
 > I’m the coach of the team and also the mum of these twin brothers. I help keep everything on track: organizing, motivating, and stepping in when things get complicated so we can break problems down and solve them together. I’m also the one managing the budget and ordering the components we need, making sure the boys have what they need to keep building and improving. My role is to support them, keep things balanced, and guide them forward whenever things get overwhelming.
 
 
@@ -62,7 +62,7 @@ To sum this all up, we have put a great amount of work and dedication into this 
 
 ***
 
-## 📬 Contact Us
+## 📬 Contact Us(**Email**)
 
 <p align="center">
   <a href="mailto:Kareemsiblini@gmail.com"><strong>Kareem Siblini</strong></a> •
