@@ -1,0 +1,173 @@
+  folder "prjs""Clever"
+  import "Mods\HTColorV2"
+  import "Mods\arduino"
+  import "Mods\CAR"
+  import "Mods\Ultrasonic"
+  import "Mods\Tool"
+  '''''''''''''''''''''''variable declaration''''''''''''''''
+  cw = 3
+  gyro = 0
+  Ldistance = 0
+  Rdistance = 0
+  t_count = 0
+  target = 0
+  DIR = 0
+  t_distance = 30
+  repeat_straight = 0
+
+Sub ReadUltrasonic
+  alphaDist = 0.9
+  counter = 0
+
+  ' Initialize once
+  'While 1=1
+    
+  Ultrasonic.getCm(2, Ldistance)
+  Ultrasonic.getCm(4, Rdistance)
+  'Ldistance=Sensor.ReadRawValue(2,0)
+  'Rdistance = Sensor.ReadRawValue(4,0)
+  'EndWhile
+  While 1=1
+    Ultrasonic.getCm(2, rawLdistance)
+    Ultrasonic.getCm(4, rawRdistance)
+    'rawLdistance = Sensor.ReadRawValue(2,0)
+    'rawRdistance =Sensor.ReadRawValue(4,0)
+    CAR.lowpass(rawLdistance, Ldistance, alphaDist, Ldistance)
+    CAR.lowpass(rawRdistance, Rdistance, alphaDist, Rdistance)
+
+    ' Reset every 10 loops
+    counter = counter + 1
+    If counter >= 5 Then
+      Ldistance = rawLdistance
+      Rdistance = rawRdistance
+      counter = 0
+    EndIf
+
+  EndWhile
+EndSub
+
+
+Sub ReadGyro
+  alphaGyro = 0.6
+  counter = 0
+
+  ' Initialize once
+  arduino.GyroArduino(1, gyroRaw)
+  gyro = (gyroRaw / 100) - offset
+
+  While 1=1
+    arduino.GyroArduino(1, gyroRaw)
+    rawGyro = (gyroRaw / 100) - offset
+
+    ' Apply low-pass filter
+    CAR.lowpass2(rawGyro, gyro, alphaGyro, gyro)
+
+    ' ---------------------------
+    ' Reset filter every 10 loops
+    ' ---------------------------
+    counter = counter + 1
+    If counter >= 10 Then
+      gyro = rawGyro        ' reset to current sensor reading
+      counter = 0           ' reset counter
+    EndIf
+
+  EndWhile
+EndSub
+  
+
+  LCD.Clear()
+  ''''''''''''''''''''''centering steering position''''''''''''''''''''''
+  CAR.reset_gyro(offset)
+  Program.Delay(300)
+  CAR.center_steer(centerPos)
+Program.Delay(50)
+
+while repeat_straight < 1000
+  CAR.move_steering(centerPos,0,lasterror)
+  repeat_straight = repeat_straight+1
+EndWhile
+  Program.Delay(100)
+  Motor.StartPower("C", 100)
+
+  '''''''''''''''''''''sub to read sensors''''''''''''''''
+
+  'Thread.Run = ReadUltrasonic
+  LCD.Clear()
+  Program.Delay(100)
+  Thread.Run = ReadUltrasonic
+  Thread.Run = ReadGyro
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+While t_count<>12
+  CAR.color_RGB(3,clr)
+  If cw = 3 Then
+    CAR.update_gyro_control(target, 0.5, 8, 0,centerPos, gyro,filteredError,  gyroLastError)
+   
+  Else
+    CAR.select(cw,Rdistance,Ldistance,distance)
+    If cw = 0 And target-gyro>30 Then
+      'Motor.StartPower("C", 100)
+      CAR.update_gyro_control(target, 1.2, 12 , 0,centerPos, gyro,filteredError,  gyroLastError)
+    ElseIf cw = 1 And target - gyro < -30 Then
+      'Motor.StartPower("C", 100)
+      CAR.update_gyro_control(target, 1.2, 12 , 0,centerPos, gyro,filteredError,  gyroLastError)
+    Else
+      'Motor.StartPower("C", 50)
+      CAR.update_gyro_dis(cw,target,gyro, t_distance, 1.2, 6, 1.5,6,centerPos,distance,gyroError,distError,lastCombinedError,DIR)
+    EndIf
+  EndIf
+  
+  If clr = 2 And cw = 3 Then
+    cw = 1
+
+  ElseIf clr = 3 And cw = 3 Then
+    cw = 0
+
+  EndIf
+  
+  
+  If clr = 2 And cw =1 Then '''''''''orange(CW)'''''''''
+
+    
+    Speaker.Tone(100, 2000, 100)
+    'Program.Delay(250)
+    Motor.ResetCount("C")
+    While Math.Abs(Motor.GetCount("C"))<255
+      CAR.move_steering(centerPos,0,lastCombinedError)
+    EndWhile
+    target = target - 90
+    t_count = t_count+1
+  ElseIf clr = 3 And cw = 0 Then'''''''''''BLUE(CCW)''''''''''''''
+
+    
+    Speaker.Tone(100, 2000, 100)
+    'Program.Delay(250)
+    Motor.ResetCount("C")
+    While Math.Abs(Motor.GetCount("C"))<255
+      CAR.move_steering(centerPos,0,lastCombinedError)
+    EndWhile
+    target = target + 90
+    t_count = t_count+1
+  EndIf
+
+    
+EndWhile
+
+'''''''''''''''''''''''''''''END PHASE'''''''''''''''''''''''
+Motor.ResetCount("C")
+While Math.Abs(Motor.GetCount("C"))<255
+  CAR.move_steering(centerPos,0,lastCombinedError)
+EndWhile
+Motor.ResetCount("C")
+Time.Reset2()
+While Math.abs(MotorC.GetTacho())<1000 Or Time.Get2()<4
+  CAR.update_gyro_control(target, 1.2, 12 , 0,centerPos, gyro,filteredError,  gyroLastError)
+  
+EndWhile
+while Math.abs(MotorC.GetTacho())<3100 Or Time.Get2()<4
+  CAR.select(cw,Rdistance,Ldistance,distance)
+  CAR.update_gyro_dis(cw,target,gyro, t_distance, 1.2, 6, 1.5,6,centerPos,distance,gyroError,distError,lastCombinedError,DIR)
+EndWhile
+LCD.Clear()
+LCD.Text(1, 0, 0, 2, "Angle: " + gyro)
+Motor.StartPower("C", 0)
+Program.Delay(200000)
