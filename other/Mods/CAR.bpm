@@ -1,0 +1,248 @@
+import"arduino"
+import "HTColorV2"
+'''''''''''''''''''''''''''''''reseting steering'''''''''''''''''''''''''''''
+
+Function center_steer(out number centerPos)
+  Motor.ResetCount("B")
+  Speaker.Tone(100, 1000, 100)
+  LCD.Clear()
+  
+  totalLeft = 0
+  totalRight = 0
+  
+  For i = 1 To 2
+    LCD.Text(1, 0, 0, 2, "Sweep " + i + ": Left")
+    
+    ' Move left until stall
+    Motor.StartPower("B", -50)
+    lastPos = Motor.GetCount("B")
+    stallCounter = 0
+    While stallCounter < 5
+      Program.Delay(100)
+      newPos = Motor.GetCount("B")
+      If Math.Abs(newPos - lastPos) < 3 Then
+        stallCounter = stallCounter + 1
+      Else
+        stallCounter = 0
+      EndIf
+      lastPos = newPos
+    EndWhile
+    Motor.Stop("B", "True")
+    Program.Delay(100)
+    leftLimit = Motor.GetCount("B")
+    totalLeft = totalLeft + leftLimit
+    LCD.Text(1, 0, 20, 2, "Left: " + leftLimit)
+    Program.Delay(100)
+    
+    LCD.Text(1, 0, 40, 2, "Sweep " + i + ": Right")
+    
+    ' Move right until stall
+    Motor.StartPower("B", 50)
+    lastPos = Motor.GetCount("B")
+    stallCounter = 0
+    While stallCounter < 5
+      Program.Delay(100)
+      newPos = Motor.GetCount("B")
+      If Math.Abs(newPos - lastPos) < 3 Then
+        stallCounter = stallCounter + 1
+      Else
+        stallCounter = 0
+      EndIf
+      lastPos = newPos
+    EndWhile
+    Motor.Stop("B", "True")
+    Program.Delay(100)
+    rightLimit = Motor.GetCount("B")
+    totalRight = totalRight + rightLimit
+    LCD.Text(1, 0, 60, 2, "Right: " + rightLimit)
+    Program.Delay(100)
+  EndFor
+  
+  ' Average both sweeps
+  avgLeft = totalLeft / 2
+  avgRight = totalRight / 2
+  centerPos = ((avgLeft + avgRight) / 2)
+  
+  LCD.Clear()
+  LCD.Text(1, 0, 0, 2, "Avg L: " + avgLeft)
+  LCD.Text(1, 0, 20, 2, "Avg R: " + avgRight)
+  LCD.Text(1, 0, 40, 2, "Center: " + centerPos)
+  Speaker.Tone(100, 2000, 100)
+  Program.Delay(300)
+EndFunction
+
+''''''''''''''''''''''''''''''''''steering function''''''''''''''''''''''''
+Function move_steering(in number center, in number targetOffset,out number lastError)
+  
+  ' --- PD Gains ---
+  Kp = 2.1        ' proportional gain
+  Kd = 0.8         ' derivative gain
+  
+  ' --- Read motor position ---
+  currentPos = Motor.GetCount("B")
+  targetAngle = center + targetOffset
+  error = targetAngle - currentPos
+  
+  ' --- Derivative term ---
+  derivative = error - lastError
+  
+  ' --- PD Output ---
+  power = Kp*error + Kd*derivative
+  
+  ' --- Limit motor power ---
+  If power > 100 Then
+    power = 100
+  EndIf
+  If power < -100 Then
+    power = -100
+  EndIf
+  If power < 30 And power > 0 Then
+    power = 30
+  EndIf
+  If power >-30 And power < 0 Then
+    power = -30
+  EndIf
+  If power < 10 And power > 0 Then
+    power = 10
+  EndIf
+  If power >-10 And power < 0 Then
+    power = -10
+  EndIf
+  
+  ' --- Apply motor power ---
+  Motor.StartPower("B", power)
+  
+  ' --- Save error for next loop ---
+  lastError = error
+  
+EndFunction
+
+'''''''''''''''''''''''''''''''''''make gyro angle zero''''''''''''''''''''''''''''
+Function reset_gyro(out number offset)
+  raw = 0
+  
+  ' Read one sample from gyro
+  arduino.GyroArduino(1, raw)
+  
+  ' Convert to degrees
+  offset = raw / 100
+EndFunction
+
+'''''''''''''''''''''''''''''''''gyro based correction'''''''''''''''''''''''''''''
+Function update_gyro_control(in number target, in number kp, in number kd, in number alpha, in number centerPos, in number currentAngle, out number filteredError, out number gyroLastError)
+  
+  rawError = currentAngle-target
+  
+  ' Apply low-pass filter
+  filteredError = alpha * filteredError + (1 - alpha) * rawError
+  error = filteredError
+  
+  ' PD calculation
+  proportional = error * kp
+  derivative = (error - gyroLastError) * kd
+  steeringPower = proportional + derivative
+  
+  ' Clamp steering
+  'If Math.Abs(currentAngle-target)< 10 And steeringPower>30 Then
+  'steeringPower = 30
+  'ElseIf Math.Abs(currentAngle-target)< 10 And steeringPower<-30 Then
+  'steeringPower = -30
+  'Else
+  If steeringPower > 55 Then
+    steeringPower = 55
+  ElseIf steeringPower < -55 Then
+    steeringPower = -55
+  EndIf
+  'EndIf
+  move_steering(centerPos, steeringPower,lasterror)
+  
+  gyroLastError = error
+EndFunction
+''''''''''''''''''''''''''''gyro and distance correction function''''''''''''''''''
+Function update_gyro_dis( in number cw, in number target, in number currentAngle, in number distanceTarget, in number kpGyro, in number kdGyro, in number kpDist, in number kdDist, in number centerPos, in number distance, out number gyroError, out number distError, out number lastCombinedError, out number DIR)
+  
+  ' --------------------------
+  ' 1) LEFT or RIGHT wall
+  ' --------------------------
+  If cw = 1 Then
+    DIR = -1      ' wall on LEFT → too far = steer LEFT (negative)
+  Else
+    DIR = 1       ' wall on RIGHT → too far = steer RIGHT (positive)
+  EndIf
+  
+  ' --------------------------
+  ' 2) ANGLE ERROR
+  ' --------------------------
+  gyroError = currentAngle - target
+  
+  ' --------------------------
+  ' 3) DISTANCE ERROR (simple)
+  '     rawDist = distance - desired
+  '     distError = rawDist * DIR
+  ' --------------------------
+  rawDistError = distance - distanceTarget
+  distError    = rawDistError * DIR
+  
+  ' --------------------------
+  ' 4) SIMPLE AVERAGE
+  ' --------------------------
+  combinedError = (gyroError + distError) / 2
+  
+  ' --------------------------
+  ' 5) PID on combined error
+  ' --------------------------
+  proportional = gyroError * kpGyro + distError * kpDist
+  derivative   = (combinedError - lastCombinedError) * ((kdGyro + kdDist) / 2)
+  
+  steeringPower = proportional + derivative
+  
+  ' --------------------------
+  ' 6) LIMIT STEERING
+  ' --------------------------
+  If steeringPower > 35 Then
+    steeringPower = 35
+  ElseIf steeringPower < -35 Then
+    steeringPower = -35
+  EndIf
+  
+  ' --------------------------
+  ' 7) MOVE
+  ' --------------------------
+  CAR.move_steering(centerPos, steeringPower, lastCombinedError)
+  
+  lastCombinedError = combinedError
+  
+EndFunction
+
+'''''''''''''''''''''''''''''''''''get color sensor data''''''''''''''''''''''''''''''''
+Function color_RGB(in number port,out number detectedColor)
+  HTColorV2.getRGBW(port, r, g, b, w)
+  
+  ' Color detection logic
+  If w>200 And r > 200 And g >200 And b>200 Then
+    detectedColor = 1 ''white
+  ElseIf r> b And r>g  Then
+    detectedColor = 2 ''orange
+  ElseIf b > r Then
+    detectedColor = 3 ''blue
+    
+  EndIf
+EndFunction
+'''''''''''''''''''''''''low pass filter data''''''''''''''''
+Function lowpass(in number currentValue, in number lastFilteredValue, in number alpha, out number filteredValue)
+  filteredValue = alpha * lastFilteredValue + (1 - alpha) * currentValue
+EndFunction
+
+Function lowpass2(in number currentValue, in number lastFilteredValue, in number alpha, out number filteredValue)
+  filteredValue = alpha * lastFilteredValue + (1 - alpha) * currentValue
+EndFunction
+'''''''''''''''''''''''''switchcase'''''''''''''''''''''''''''''''''''''''''
+Function select(in number bool, in number select1, in number select2, out number value)
+  If bool = 0 Then
+    value = select1
+  ElseIf bool = 1 Then
+    value = select2
+  Else
+    value = 0
+  EndIf
+EndFunction

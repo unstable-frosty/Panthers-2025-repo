@@ -1,0 +1,48 @@
+'========================================================
+' Function: readFromArduino
+' Reads 2 bytes (little-endian) and returns signed 16-bit
+'========================================================
+Function GyroArduino(in number port, out number value)
+  address = 4
+  data = Sensor.ReadI2CRegisters(port, address, 0, 4)
+
+  b0 = data[0]
+  b1 = data[1]
+  b2 = data[2]
+  b3 = data[3]
+
+  ' Force bytes into 0..255
+  If b0 < 0 Then 
+    b0 = b0 + 256 
+  EndIf
+  If b1 < 0 Then 
+    b1 = b1 + 256 
+  EndIf
+  If b2 < 0 Then 
+    b2 = b2 + 256 
+  EndIf
+  If b3 < 0 Then 
+    b3 = b3 + 256 
+  EndIf
+
+  ' Combine little-endian 32-bit: b0 + b1*256 + b2*65536 + b3*16777216
+  n = b0 + b1 * 256 + b2 * 65536 + b3 * 16777216
+
+  ' Signed correction for 32-bit:
+  ' if n >= 2^31 then n = n - 2^32
+  If n >= 2147483648 Then
+    n = n - 4294967296
+  EndIf
+
+  value = n/1
+EndFunction
+
+'While 1=1
+  'readFromArduino(1, raw16, sig)
+  'yawDeg = raw16 / 100.0        ' convert back to degrees
+  'LCD.Text(1, 5, 30, 1, "Yaw: " + yawDeg)
+  'LCD.Text(1, 5, 40, 1, "test: " + sig)
+  'LCD.Text(1, 5, 50, 1, "test: " + x_CO)
+  'Program.Delay(100)
+  'LCD.Clear()
+'EndWhile
