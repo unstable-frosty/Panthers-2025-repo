@@ -86,7 +86,7 @@ EndSub
 ### Why this is important:
 - Ultrasonic noise is reduced before being used for steering  
 - Filtering prevents “twitchy” corrections  
-- Periodic resets ensure the sensor doesn’t fall behind reality  
+- Periodic resets ensure the sensor doesn’t accumilate error
 - Continuous looping ensures high update frequency  
 
 This thread allows the robot to rely confidently on wall distance measurements.
@@ -184,7 +184,7 @@ This structured approach ensures predictable and repeatable turns.
 
 ## 9. End‑Phase Sequence
 
-After completing all twelve turns, the robot enters a final sequence of movements. It first drives a short straight distance, then transitions to a longer gyro‑corrected segment, and finally performs a wall‑following stretch. These layers help compensate for any drift accumulated earlier in the run and place the robot near the final area with consistent alignment. At the end, the robot displays its final gyro angle and stops the drive motor while leaving the program running so that the driver can inspect the result.
+After completing all twelve turns, the robot enters a final sequence of movements. It first drives a short straight distance, then transitions to a longer gyro‑corrected segment(turn), and finally performs a wall‑following stretch. These layers help compensate for any drift accumulated earlier in the run and place the robot near the final area with consistent alignment. At the end, the robot displays its final gyro angle and stops the drive motor while leaving the program running so that we can inspect the result.
 
 ### This final section provides:
 - A stabilizing straight movement  
