@@ -1,7 +1,5 @@
 # WRO Future Engineers – EV3 Navigation + Obstacle Avoidance
-## Complete Technical README (with Full Source Code)
 
-This README documents the **full navigation and obstacle-avoidance program** written in Clev3r for EV3, used in the WRO Future Engineers Open Challenge.
 
 It is intended for:
 - Future team members learning how the robot works  
@@ -932,7 +930,3 @@ Motor.StartPower("C", 0)
 Program.Delay(200000)
 ```
 
----
-
-You can now place this `README.md` directly in your GitHub repository alongside the program file.  
-It should provide enough detail for Future Engineers team members (and judges) to understand exactly how the robot navigates and avoids obstacles.
