@@ -146,6 +146,8 @@ This is where the robot moved from “working prototype” to “competition-rea
 
 
 ---
+# ❗ **Issues faced in International practice day**
+-We found out that there was a strong magnetic field around the maps, therefore we decided to disable the magnetometer inside our gyro and used only accelerometer and the gyro. This helped remove the effect of the electromagnetic field on our robot.
 
 # 🤝 **Work Ethic & Team Collaboration**
 
@@ -173,4 +175,8 @@ This is where the robot moved from “working prototype” to “competition-rea
 - **Curiosity:** exploring unconventional fixes (like using backlash)  
 - **Team Unity:** always supporting each other  
 - **Reflection:** learning from every result to guide the next step  
+
+
+--
+
 
