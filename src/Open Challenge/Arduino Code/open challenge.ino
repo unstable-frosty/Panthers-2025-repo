@@ -51,18 +51,26 @@ void hwResetIfAvailable() {
   }
 }
 
+// Use GAME ROTATION VECTOR (gyro + accel, NO magnetometer)
 bool configureReports() {
-  // Or: imu.enableReport(SH2_ARVR_STABILIZED_RV, reportIntervalMs * 1000UL);
-  return imu.enableRotationVector(reportIntervalMs);
+  // SparkFun API: enableReport(sensorId, interval_us)
+  if (!imu.enableReport(SH2_GAME_ROTATION_VECTOR, reportIntervalMs * 1000UL)) {
+    return false;
+  }
+  return true;
 }
 
 bool startBNO() {
   // Begin on default Wire (A4/A5). INT/RST if you wired them.
-  bool ok = imu.begin(currentAddr, Wire, (PIN_INT >= 0 ? PIN_INT : -1), (PIN_RST >= 0 ? PIN_RST : -1));
+  bool ok = imu.begin(currentAddr, Wire,
+                      (PIN_INT >= 0 ? PIN_INT : -1),
+                      (PIN_RST >= 0 ? PIN_RST : -1));
   if (!ok) return false;
+
   if (!configureReports()) {
-    Serial.println(F("Failed to enable Rotation Vector."));
+    Serial.println(F("Failed to enable Game Rotation Vector."));
   }
+
   lastEventMs = millis();
   // re-zero on each fresh start
   firstYawSet = false;
@@ -96,14 +104,6 @@ void receiveData(int byteCount) {
   // Commands: 0x01 -> re-zero yaw
 }
 
-// void sendData() {
-//   int16_t centi = (int16_t)roundf(accumYaw * 100.0f);  // deg * 100, signed
-//   uint8_t buf[2];
-//   // Little-endian: LSB first, then MSB
-//   buf[0] = (uint8_t)(centi & 0xFF);
-//   buf[1] = (uint8_t)((centi >> 8) & 0xFF);
-//   EV3Wire.write(buf, 2);
-// }
 void sendData() {
   // 32-bit signed centi-degrees (deg * 100)
   int32_t centi = (int32_t)roundf(accumYaw * 100.0f);
@@ -118,28 +118,25 @@ void sendData() {
   EV3Wire.write(buf, 4);
 }
 
-
 // ======================================================================
 //                                 setup
 // ======================================================================
 void setup() {
 
   Serial.begin(115200);
-  //while (!Serial) {}
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
   Serial.println(F("\n=== Nano ESP32: IMU on A4/A5, EV3 on D12/D11 ==="));
  
   // -------- EV3 I2C slave on Wire1 (D12/D11) --------
-  // 100kHz is safest for EV3; adjust if needed.
-  EV3Wire.begin((uint8_t)SLAVE_ADDRESS, EV3_SDA, EV3_SCL, 100000);
+  EV3Wire.begin((uint8_t)SLAVE_ADDRESS, EV3_SDA, EV3_SCL, 100000);  // 100kHz for EV3
   EV3Wire.onReceive(receiveData);
   EV3Wire.onRequest(sendData);
   Serial.println(F("EV3 I2C slave ready @ 0x04 on D12/D11"));
 
   // -------- IMU I2C master on Wire (A4/A5) --------
-  Wire.begin();            // use board’s default SDA/SCL (A4/A5 on Nano layout)
-  Wire.setClock(400000);   // 400k if your wiring is short/clean; 100k if long
+  Wire.begin();            // board’s default SDA/SCL (A4/A5 on Nano layout)
+  Wire.setClock(400000);   // 400k if wiring is short/clean; 100k if long
   hwResetIfAvailable();
 
   if (!startBNO()) {
@@ -156,14 +153,14 @@ void setup() {
     Serial.println(currentAddr, HEX);
   }
 
-  Serial.println(F("Streaming zeroed, accumulated yaw; EV3 reads 4-byte float.\n"));
+  Serial.println(F("Streaming zeroed, accumulated yaw (Game RV); EV3 reads 4-byte centi-deg.\n"));
 }
 
 // ======================================================================
 //                                  loop
 // ======================================================================
 void loop() {
-  // Handle optional EV3 commands (e.g., re-zero)
+  // Handle EV3 commands (e.g., re-zero)
   if (cmdReady) {
     int cmd = lastCmd;
     cmdReady = false;
@@ -200,7 +197,8 @@ void loop() {
       lastYaw  = 0.0f;
     }
 
-    if (imu.sensorValue.sensorId == SH2_ROTATION_VECTOR) {
+    // Use GAME ROTATION VECTOR events (no magnetometer)
+    if (imu.sensorValue.sensorId == SH2_GAME_ROTATION_VECTOR) {
       float x = imu.getQuatI();
       float y = imu.getQuatJ();
       float z = imu.getQuatK();
@@ -237,7 +235,7 @@ void loop() {
         lastPrint = millis();
         Serial.print(F("AccumYaw: "));
         Serial.print(accumYaw, 2);
-        Serial.print(F(" deg | Yaw: "));
+        Serial.print(F(" deg | Yaw (zeroed): "));
         Serial.println(yaw, 2);
       }
     }
